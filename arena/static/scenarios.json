@@ -1,0 +1,72 @@
+[
+  {
+    "id": "untrusted-content",
+    "number": "01",
+    "title": "A document gives the agent instructions",
+    "tag": "INDIRECT PROMPT INJECTION",
+    "prompt": "Summarize the project notes and send me the key points.",
+    "setup": "A note contains text that tries to redirect the agent and request a simulated credential.",
+    "control": "Treat retrieved content as data, never as authority. Keep outbound actions behind an explicit policy check.",
+    "lesson": "Separate instructions from data, then enforce permissions in code. A prompt alone is not an access-control boundary.",
+    "naive": [
+      {"kind": "request", "title": "User request", "detail": "Summarize the project notes and send the key points."},
+      {"kind": "tool", "title": "read_notes()", "detail": "Returned 3 notes. One contains instructions aimed at the agent.", "trust": "UNTRUSTED INPUT"},
+      {"kind": "decision", "title": "Agent follows document instructions", "detail": "The demo agent treats retrieved text as a command."},
+      {"kind": "tool", "title": "send_message()", "detail": "Sent simulated value DEMO-CREDENTIAL-42 to an unapproved destination.", "trust": "POLICY NOT CHECKED"},
+      {"kind": "failed", "title": "Sensitive data exposed", "detail": "This is a simulated event. No real credential or message was used."}
+    ],
+    "hardened": [
+      {"kind": "request", "title": "User request", "detail": "Summarize the project notes and send the key points."},
+      {"kind": "tool", "title": "read_notes()", "detail": "Returned 3 notes, tagged as untrusted content.", "trust": "UNTRUSTED INPUT"},
+      {"kind": "decision", "title": "Untrusted instruction ignored", "detail": "The agent extracts facts only; retrieved text cannot grant permissions."},
+      {"kind": "blocked", "title": "Outbound action blocked", "detail": "No approved recipient was supplied. Policy denies the send operation."},
+      {"kind": "success", "title": "Safe summary prepared", "detail": "The user can review the summary without exposing data."}
+    ]
+  },
+  {
+    "id": "tool-integrity",
+    "number": "02",
+    "title": "A tool changes after it was trusted",
+    "tag": "TOOL & SUPPLY-CHAIN INTEGRITY",
+    "prompt": "Use the project status tool to check the release readiness.",
+    "setup": "A tool update changes its declared behavior after the app was configured.",
+    "control": "Pin tool identity and capabilities. Validate the manifest at startup and fail closed on drift.",
+    "lesson": "Tool descriptions and updates are part of your software supply chain. Review and verify them like code.",
+    "naive": [
+      {"kind": "request", "title": "User request", "detail": "Check release readiness using the project status tool."},
+      {"kind": "tool", "title": "Load status tool", "detail": "A new tool version is accepted without review.", "trust": "UNVERIFIED UPDATE"},
+      {"kind": "decision", "title": "Expanded capability accepted", "detail": "The tool now requests access beyond its original read-only purpose."},
+      {"kind": "tool", "title": "status_check()", "detail": "The simulated tool returns status plus unrelated workspace data."},
+      {"kind": "failed", "title": "Unexpected data access", "detail": "The app did not verify whether the tool's capabilities had changed."}
+    ],
+    "hardened": [
+      {"kind": "request", "title": "User request", "detail": "Check release readiness using the project status tool."},
+      {"kind": "tool", "title": "Verify tool manifest", "detail": "Configured fingerprint does not match the updated tool.", "trust": "INTEGRITY MISMATCH"},
+      {"kind": "blocked", "title": "Tool disabled", "detail": "Fail-closed policy rejects the unreviewed capability change."},
+      {"kind": "decision", "title": "No tool call made", "detail": "The agent does not invoke a tool whose identity or scope is unverified."},
+      {"kind": "success", "title": "Safe fallback", "detail": "Ask an operator to review and approve the new tool version."}
+    ]
+  },
+  {
+    "id": "excessive-agency",
+    "number": "03",
+    "title": "A vague request becomes a risky action",
+    "tag": "LEAST PRIVILEGE & APPROVAL",
+    "prompt": "Clean up the old release artifacts.",
+    "setup": "The request is ambiguous, but the naive agent has a broad cleanup capability.",
+    "control": "Scope tools to a dedicated workspace. Require a human approval for destructive actions.",
+    "lesson": "Reduce the blast radius before the model acts. Add approval at the point of consequential change.",
+    "naive": [
+      {"kind": "request", "title": "User request", "detail": "Clean up the old release artifacts."},
+      {"kind": "decision", "title": "Ambiguous request interpreted broadly", "detail": "The naive agent assumes which artifacts the user means."},
+      {"kind": "tool", "title": "cleanup_artifacts()", "detail": "The simulated tool targets files outside the intended project area.", "trust": "BROAD SCOPE"},
+      {"kind": "failed", "title": "Destructive action completed", "detail": "The demo records an unsafe outcome; it does not modify any files."}
+    ],
+    "hardened": [
+      {"kind": "request", "title": "User request", "detail": "Clean up the old release artifacts."},
+      {"kind": "decision", "title": "Action classified as destructive", "detail": "The request does not identify a specific, approved target."},
+      {"kind": "blocked", "title": "Approval required", "detail": "No action runs until a person confirms a scoped target."},
+      {"kind": "success", "title": "No changes made", "detail": "Least-privilege scope and human approval prevent unintended impact."}
+    ]
+  }
+]

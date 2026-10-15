@@ -21,7 +21,7 @@ let sequence = 0;
 
 async function loadScenarios() {
   try {
-    const response = await fetch('/api/scenarios');
+    const response = await fetch('assets/scenarios.json');
     if (!response.ok) throw new Error('Scenario service unavailable');
     scenarios = await response.json();
     renderScenarioList();
@@ -130,9 +130,12 @@ function wait(milliseconds) {
 }
 
 async function playScenario(id, runSequence) {
-  const response = await fetch(`/api/run/${encodeURIComponent(id)}`, { method: 'POST' });
-  if (!response.ok) throw new Error('Could not run the selected scenario');
-  const result = await response.json();
+  const scenario = scenarios.find((item) => item.id === id);
+  if (!scenario) throw new Error('Could not find the selected scenario');
+  const result = {
+    naive: { status: 'EXPOSED', events: scenario.naive },
+    hardened: { status: 'PREVENTED', events: scenario.hardened },
+  };
   if (runSequence !== sequence) return;
   naiveEvents.replaceChildren();
   secureEvents.replaceChildren();
@@ -150,7 +153,6 @@ async function playScenario(id, runSequence) {
   if (runSequence !== sequence) return;
   setStatus(naiveStatus, result.naive.status, 'exposed');
   setStatus(secureStatus, result.hardened.status, 'prevented');
-  const scenario = scenarios.find((item) => item.id === id);
   controlTitle.textContent = 'Build the control into the product, not the prompt.';
   controlDescription.textContent = scenario.lesson;
 }

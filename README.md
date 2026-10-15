@@ -2,6 +2,8 @@
 
 A visual conference demo for **Build Secure: Developing for Modern Security**. The same three scenarios run side by side against a naive agent and a hardened agent, making secure-development controls visible as they prevent unsafe outcomes.
 
+**Live demo:** https://shimicohen1.github.io/build-secure-agent-arena/ (published from `master` after the secure-build workflow passes).
+
 ## Run it
 
 Requires Python 3.11 or newer.

@@ -23,3 +23,27 @@ jobs:
         run: python -m pytest
       - name: Scan Python source
         run: python -m bandit -q -r arena
+
+  deploy-pages:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: test-and-scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload static demo
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: arena/static
+      - name: Deploy static demo
+        id: deployment
+        uses: actions/deploy-pages@v4
