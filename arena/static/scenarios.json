@@ -2,10 +2,16 @@
   {
     "id": "untrusted-content",
     "number": "01",
+    "shortTitle": "Prompt injection",
     "title": "A document gives the agent instructions",
     "tag": "INDIRECT PROMPT INJECTION",
     "prompt": "Summarize the project notes and send me the key points.",
     "setup": "A note contains text that tries to redirect the agent and request a simulated credential.",
+    "decisionQuestion": "The note asks the agent to send a simulated credential. What policy do you ship?",
+    "choices": [
+      {"id": "obey-note", "label": "Follow the note's instructions", "detail": "Retrieved text can redirect the agent's actions.", "secure": false},
+      {"id": "data-only", "label": "Treat the note as untrusted data", "detail": "Extract useful facts; never let content grant authority.", "secure": true}
+    ],
     "control": "Treat retrieved content as data, never as authority. Keep outbound actions behind an explicit policy check.",
     "lesson": "Separate instructions from data, then enforce permissions in code. A prompt alone is not an access-control boundary.",
     "naive": [
@@ -26,10 +32,16 @@
   {
     "id": "tool-integrity",
     "number": "02",
+    "shortTitle": "Tool update",
     "title": "A tool changes after it was trusted",
     "tag": "TOOL & SUPPLY-CHAIN INTEGRITY",
     "prompt": "Use the project status tool to check the release readiness.",
     "setup": "A tool update changes its declared behavior after the app was configured.",
+    "decisionQuestion": "A trusted tool now requests broader access. What happens next?",
+    "choices": [
+      {"id": "accept-update", "label": "Load the update immediately", "detail": "Assume the new tool behavior is still trustworthy.", "secure": false},
+      {"id": "verify-update", "label": "Verify identity and scope first", "detail": "Reject unreviewed changes until the manifest is checked.", "secure": true}
+    ],
     "control": "Pin tool identity and capabilities. Validate the manifest at startup and fail closed on drift.",
     "lesson": "Tool descriptions and updates are part of your software supply chain. Review and verify them like code.",
     "naive": [
@@ -50,10 +62,16 @@
   {
     "id": "excessive-agency",
     "number": "03",
+    "shortTitle": "Agent permissions",
     "title": "A vague request becomes a risky action",
     "tag": "LEAST PRIVILEGE & APPROVAL",
     "prompt": "Clean up the old release artifacts.",
     "setup": "The request is ambiguous, but the naive agent has a broad cleanup capability.",
+    "decisionQuestion": "The request is vague and the tool can delete files. What guardrail do you choose?",
+    "choices": [
+      {"id": "run-cleanup", "label": "Let the agent clean up now", "detail": "Give it broad access and trust its interpretation.", "secure": false},
+      {"id": "scope-approve", "label": "Scope the target and ask for approval", "detail": "Limit access and confirm the exact destructive action.", "secure": true}
+    ],
     "control": "Scope tools to a dedicated workspace. Require a human approval for destructive actions.",
     "lesson": "Reduce the blast radius before the model acts. Add approval at the point of consequential change.",
     "naive": [

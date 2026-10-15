@@ -44,7 +44,7 @@ jobs:
         run: |
           mkdir -p site/assets
           cp arena/static/index.html site/index.html
-          cp arena/static/app.js arena/static/scenarios.json arena/static/styles.css site/assets/
+          cp arena/static/app.js arena/static/scenarios.json arena/static/styles.css arena/static/challenge.css site/assets/
       - name: Upload static demo
         uses: actions/upload-pages-artifact@v3
         with:

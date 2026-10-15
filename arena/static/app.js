@@ -3,97 +3,176 @@ const scenarioTitle = document.querySelector('#scenario-title');
 const scenarioTag = document.querySelector('#scenario-tag');
 const scenarioSetup = document.querySelector('#scenario-setup');
 const scenarioPrompt = document.querySelector('#scenario-prompt');
+const decisionQuestion = document.querySelector('#decision-question');
+const decisionOptions = document.querySelector('#decision-options');
+const decisionFeedback = document.querySelector('#decision-feedback');
+const roundLabel = document.querySelector('#round-label');
+const scoreValue = document.querySelector('#score-value');
+const buildPolicy = document.querySelector('#build-policy');
 const controlTitle = document.querySelector('#control-title');
 const controlDescription = document.querySelector('#control-description');
-const runButton = document.querySelector('#run-current');
-const runAllButton = document.querySelector('#run-all');
+const resetButton = document.querySelector('#reset-lab');
 const naiveEvents = document.querySelector('#naive-events');
 const secureEvents = document.querySelector('#secure-events');
 const naiveStatus = document.querySelector('#naive-status');
 const secureStatus = document.querySelector('#secure-status');
+const naivePanel = document.querySelector('.naive-panel');
+const securePanel = document.querySelector('.secure-panel');
 const toast = document.querySelector('#toast');
 const scenarioProgress = document.querySelector('#scenario-progress');
 
 let scenarios = [];
 let selectedId = null;
-let running = false;
+let selections = new Map();
+let animating = false;
 let sequence = 0;
 
 async function loadScenarios() {
   try {
     const response = await fetch('assets/scenarios.json');
-    if (!response.ok) throw new Error('Scenario service unavailable');
+    if (!response.ok) throw new Error('Scenario data unavailable');
     scenarios = await response.json();
     renderScenarioList();
     selectScenario(scenarios[0].id);
   } catch {
-    scenarioTitle.textContent = 'Demo could not start';
-    scenarioSetup.textContent = 'Refresh the page or restart the local arena server.';
+    scenarioTitle.textContent = 'Lab could not start';
+    scenarioSetup.textContent = 'Refresh the page or check that the static scenario data is available.';
   }
 }
 
 function renderScenarioList() {
   scenarioList.replaceChildren();
-  for (const [index, scenario] of scenarios.entries()) {
+  for (const scenario of scenarios) {
     const button = document.createElement('button');
     button.className = 'scenario-button';
     button.type = 'button';
     button.dataset.scenarioId = scenario.id;
+    button.title = `Open round ${scenario.number}: ${scenario.title}`;
+
     const number = document.createElement('span');
     number.className = 'num';
     number.textContent = scenario.number;
     const copy = document.createElement('div');
     const title = document.createElement('strong');
-    title.textContent = ['Untrusted content', 'Tool integrity', 'Excessive agency'][index];
+    title.textContent = scenario.shortTitle;
     const subtitle = document.createElement('small');
     subtitle.textContent = scenario.tag;
     copy.append(title, subtitle);
-    const arrow = document.createElement('span');
-    arrow.className = 'arrow';
-    arrow.textContent = '›';
-    button.append(number, copy, arrow);
+    const marker = document.createElement('span');
+    marker.className = 'scenario-marker';
+    marker.setAttribute('aria-hidden', 'true');
+    marker.textContent = '○';
+    button.append(number, copy, marker);
     button.addEventListener('click', () => selectScenario(scenario.id));
     scenarioList.append(button);
   }
 }
 
 function selectScenario(id) {
-  if (running) return;
+  if (animating) return;
   selectedId = id;
   const scenario = scenarios.find((item) => item.id === id);
   if (!scenario) return;
-  updateProgress(scenario);
-  document.querySelectorAll('.scenario-button').forEach((button) => {
-    button.classList.toggle('active', button.dataset.scenarioId === id);
-  });
-  scenarioTag.textContent = `SCENARIO ${scenario.number} / ${scenario.tag}`;
+  const selection = selections.get(id);
+  updateNavigation(scenario);
+  scenarioTag.textContent = `ROUND ${scenario.number} / ${scenario.tag}`;
   scenarioTitle.textContent = scenario.title;
   scenarioSetup.textContent = scenario.setup;
   scenarioPrompt.textContent = scenario.prompt;
-  controlTitle.textContent = 'Secure controls make the difference visible.';
-  controlDescription.textContent = scenario.control;
-  resetLanes();
+  decisionQuestion.textContent = scenario.decisionQuestion;
+  roundLabel.textContent = `ROUND ${scenario.number} / 03`;
+  updateProgress(scenario);
+  renderChoices(scenario, selection?.id);
+  if (selection) {
+    showOutcome(scenario, selection, false);
+  } else {
+    resetOutcome();
+  }
+}
+
+function updateNavigation(activeScenario) {
+  document.querySelectorAll('.scenario-button').forEach((button) => {
+    const scenario = scenarios.find((item) => item.id === button.dataset.scenarioId);
+    const selection = selections.get(scenario.id);
+    button.classList.toggle('active', scenario.id === activeScenario.id);
+    button.classList.toggle('has-answer', Boolean(selection));
+    button.classList.toggle('risky-answer', Boolean(selection && !selection.secure));
+    button.querySelector('.scenario-marker').textContent = selection ? (selection.secure ? '✓' : '!') : '○';
+    button.setAttribute('aria-current', scenario.id === activeScenario.id ? 'step' : 'false');
+  });
 }
 
 function updateProgress(scenario) {
   scenarioProgress.replaceChildren();
-  scenarioProgress.append(document.createTextNode(scenario.number + ' '));
+  scenarioProgress.append(document.createTextNode(`${scenario.number} `));
   const divider = document.createElement('b');
   divider.textContent = '/';
-  scenarioProgress.append(divider, document.createTextNode(' 03 SCENARIOS'));
+  scenarioProgress.append(divider, document.createTextNode(' 03 ROUNDS'));
 }
 
-function resetLanes() {
+function updateScore() {
+  const score = [...selections.values()].filter((selection) => selection.secure).length;
+  scoreValue.textContent = String(score);
+}
+
+function renderChoices(scenario, selectedChoiceId) {
+  decisionOptions.replaceChildren();
+  for (const [index, choice] of scenario.choices.entries()) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'choice-card';
+    button.dataset.choiceId = choice.id;
+    if (selectedChoiceId === choice.id) {
+      button.classList.add('selected', choice.secure ? 'secure-choice' : 'risky-choice');
+    }
+    const key = document.createElement('span');
+    key.className = 'choice-key';
+    key.textContent = index === 0 ? 'A' : 'B';
+    const content = document.createElement('span');
+    content.className = 'choice-content';
+    const title = document.createElement('strong');
+    title.textContent = choice.label;
+    const detail = document.createElement('small');
+    detail.textContent = choice.detail;
+    content.append(title, detail);
+    const affordance = document.createElement('span');
+    affordance.className = 'choice-arrow';
+    affordance.textContent = selectedChoiceId === choice.id ? '✓' : '↗';
+    button.append(key, content, affordance);
+    button.disabled = animating;
+    button.addEventListener('click', () => chooseAction(choice.id));
+    decisionOptions.append(button);
+  }
+  const selection = selectedChoiceId
+    ? scenario.choices.find((choice) => choice.id === selectedChoiceId)
+    : null;
+  if (selection) {
+    decisionFeedback.className = `decision-feedback ${selection.secure ? 'feedback-secure' : 'feedback-risk'}`;
+    decisionFeedback.textContent = selection.secure
+      ? `Secure call. ${scenario.control}`
+      : `Risk exposed. ${scenario.control} Choose the other policy to test the defense.`;
+  } else {
+    decisionFeedback.className = 'decision-feedback';
+    decisionFeedback.textContent = 'Choose the policy you would ship. The outcome below will respond to your call.';
+  }
+}
+
+function resetOutcome() {
   naiveEvents.replaceChildren(makeEmptyState());
   secureEvents.replaceChildren(makeEmptyState());
-  setStatus(naiveStatus, 'STANDBY', 'idle');
-  setStatus(secureStatus, 'STANDBY', 'idle');
+  naivePanel.classList.remove('outcome-failed');
+  securePanel.classList.remove('outcome-failed');
+  setStatus(naiveStatus, 'WAITING', 'idle');
+  setStatus(secureStatus, 'WAITING', 'idle');
+  buildPolicy.textContent = 'AWAITING YOUR POLICY';
+  controlTitle.textContent = 'Your decision changes the outcome.';
+  controlDescription.textContent = 'Choose A or B above. The baseline and your implementation will run the same scenario.';
 }
 
 function makeEmptyState() {
   const empty = document.createElement('div');
   empty.className = 'empty-state';
-  empty.textContent = 'Waiting for the scenario';
+  empty.textContent = 'Waiting for your decision';
   return empty;
 }
 
@@ -129,76 +208,58 @@ function wait(milliseconds) {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
-async function playScenario(id, runSequence) {
-  const scenario = scenarios.find((item) => item.id === id);
-  if (!scenario) throw new Error('Could not find the selected scenario');
-  const result = {
-    naive: { status: 'EXPOSED', events: scenario.naive },
-    hardened: { status: 'PREVENTED', events: scenario.hardened },
-  };
-  if (runSequence !== sequence) return;
+async function chooseAction(choiceId) {
+  if (animating) return;
+  const scenario = scenarios.find((item) => item.id === selectedId);
+  const choice = scenario?.choices.find((item) => item.id === choiceId);
+  if (!scenario || !choice) return;
+  selections.set(scenario.id, choice);
+  updateScore();
+  updateNavigation(scenario);
+  renderChoices(scenario, choice.id);
+  await showOutcome(scenario, choice, true);
+}
+
+async function showOutcome(scenario, choice, animate) {
+  const currentSequence = ++sequence;
+  animating = animate;
+  renderChoices(scenario, choice.id);
   naiveEvents.replaceChildren();
   secureEvents.replaceChildren();
+  const yourEvents = choice.secure ? scenario.hardened : scenario.naive;
+  const yourStatus = choice.secure ? 'PREVENTED' : 'EXPOSED';
+  const yourClass = choice.secure ? 'prevented' : 'exposed';
+  naivePanel.classList.remove('outcome-failed');
+  securePanel.classList.toggle('outcome-failed', !choice.secure);
   setStatus(naiveStatus, 'RUNNING', 'running');
   setStatus(secureStatus, 'RUNNING', 'running');
-  const eventCount = Math.max(result.naive.events.length, result.hardened.events.length);
-  for (let index = 0; index < eventCount; index += 1) {
-    if (runSequence !== sequence) return;
-    const naiveEvent = result.naive.events[index];
-    const secureEvent = result.hardened.events[index];
-    if (naiveEvent) naiveEvents.append(makeEventCard(naiveEvent));
-    if (secureEvent) secureEvents.append(makeEventCard(secureEvent));
-    await wait(560);
-  }
-  if (runSequence !== sequence) return;
-  setStatus(naiveStatus, result.naive.status, 'exposed');
-  setStatus(secureStatus, result.hardened.status, 'prevented');
-  controlTitle.textContent = 'Build the control into the product, not the prompt.';
+  buildPolicy.textContent = choice.secure ? 'YOUR POLICY: ENFORCED' : 'YOUR POLICY: CONTROL MISSING';
+  controlTitle.textContent = choice.secure ? 'Your build stopped the unsafe action.' : 'Your build reproduced the risk.';
   controlDescription.textContent = scenario.lesson;
-}
 
-async function run(ids) {
-  if (running) return;
-  running = true;
-  const runSequence = ++sequence;
-  runButton.disabled = true;
-  runAllButton.disabled = true;
-  runButton.innerHTML = '<span class="play-icon">●</span> Running';
-  try {
-    for (const id of ids) {
-      if (runSequence !== sequence) return;
-      if (selectedId !== id) selectScenarioForPlayback(id);
-      await playScenario(id, runSequence);
-      if (ids.length > 1) await wait(950);
-    }
-  } catch (error) {
-    toast.textContent = error.message;
-    toast.classList.add('show');
-    window.setTimeout(() => toast.classList.remove('show'), 2600);
-  } finally {
-    running = false;
-    runButton.disabled = false;
-    runAllButton.disabled = false;
-    runButton.innerHTML = '<span class="play-icon">▶</span> Run scenario';
+  const eventCount = Math.max(scenario.naive.length, yourEvents.length);
+  for (let index = 0; index < eventCount; index += 1) {
+    if (currentSequence !== sequence) return;
+    if (scenario.naive[index]) naiveEvents.append(makeEventCard(scenario.naive[index]));
+    if (yourEvents[index]) secureEvents.append(makeEventCard(yourEvents[index]));
+    if (animate) await wait(380);
   }
+
+  if (currentSequence !== sequence) return;
+  setStatus(naiveStatus, 'EXPOSED', 'exposed');
+  setStatus(secureStatus, yourStatus, yourClass);
+  animating = false;
+  renderChoices(scenario, choice.id);
 }
 
-function selectScenarioForPlayback(id) {
-  const scenario = scenarios.find((item) => item.id === id);
-  if (!scenario) return;
-  selectedId = id;
-  updateProgress(scenario);
-  document.querySelectorAll('.scenario-button').forEach((button) => {
-    button.classList.toggle('active', button.dataset.scenarioId === id);
-  });
-  scenarioTag.textContent = `SCENARIO ${scenario.number} / ${scenario.tag}`;
-  scenarioTitle.textContent = scenario.title;
-  scenarioSetup.textContent = scenario.setup;
-  scenarioPrompt.textContent = scenario.prompt;
-  controlTitle.textContent = 'Secure controls make the difference visible.';
-  controlDescription.textContent = scenario.control;
+function resetLab() {
+  sequence += 1;
+  animating = false;
+  selections = new Map();
+  updateScore();
+  const scenario = scenarios.find((item) => item.id === selectedId) ?? scenarios[0];
+  selectScenario(scenario.id);
 }
 
-runButton.addEventListener('click', () => run([selectedId]));
-runAllButton.addEventListener('click', () => run(scenarios.map((scenario) => scenario.id)));
+resetButton.addEventListener('click', resetLab);
 loadScenarios();

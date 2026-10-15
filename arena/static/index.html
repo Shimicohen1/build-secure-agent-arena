@@ -3,64 +3,83 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f4f4ef">
+  <meta name="theme-color" content="#050708">
   <title>UBTECH | Build Secure: Agent Arena</title>
   <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="assets/challenge.css">
   <script src="assets/app.js" defer></script>
 </head>
 <body>
   <header class="topbar">
-    <a class="wordmark" href="./" aria-label="UBTECH Build Secure Agent Arena home"><span class="brand-copy"><strong>UBTECH</strong><small>LEADING THE AI FRONTIER</small></span><span class="brand-divider"></span><span class="product-mark">BUILD SECURE <i>/</i> AGENT ARENA</span></a>
+    <a class="wordmark" href="./" aria-label="UBTECH Build Secure Agent Arena home">
+      <span class="brand-copy"><strong>UBTECH</strong><small>LEADING THE AI FRONTIER</small></span>
+      <span class="brand-divider"></span>
+      <span class="product-mark">BUILD SECURE <i>/</i> AGENT ARENA</span>
+    </a>
     <div class="top-meta"><span class="live-dot"></span><span>SIMULATION MODE</span><span class="version">DEMO 01</span></div>
   </header>
+
   <main class="layout">
     <aside class="rail">
       <div class="eyebrow">CONFERENCE LAB <span>30 MIN</span></div>
       <h1>Build Secure<span class="title-dot">.</span></h1>
       <p class="subtitle">Developing for<br>Modern Security</p>
       <div class="rail-rule"></div>
-      <div class="section-label">CHOOSE A SCENARIO</div>
-      <nav id="scenario-list" class="scenario-list" aria-label="Demo scenarios"></nav>
+      <div class="section-label">CHOOSE A ROUND</div>
+      <nav id="scenario-list" class="scenario-list" aria-label="Challenge rounds"></nav>
       <div class="rail-bottom">
-        <div class="safety-line"><span class="shield-icon">+</span><span>All actions are simulated.<br>No real systems are touched.</span></div>
+        <div class="safety-line"><span class="shield-icon">+</span><span>All outcomes are simulated.<br>No real systems are touched.</span></div>
         <span class="rail-index">FIELD NOTE / 2026</span>
       </div>
     </aside>
+
     <section class="workspace">
       <div class="workspace-head">
         <div>
-          <div class="eyebrow" id="scenario-tag">SCENARIO 01 / INJECTION</div>
+          <div class="eyebrow" id="scenario-tag">ROUND 01 / PROMPT INJECTION</div>
           <h2 id="scenario-title">A document gives the agent instructions</h2>
           <p id="scenario-setup" class="scenario-setup"></p>
         </div>
-        <div class="run-group">
-          <button id="run-all" class="text-button" type="button" title="Play all three scenarios">Run all <span>↗</span></button>
-          <button id="run-current" class="run-button" type="button"><span class="play-icon">▶</span> Run scenario</button>
+        <div class="session-tools">
+          <div class="score-display" aria-live="polite"><strong id="score-value">0</strong><span>/ 3<br>SECURE CALLS</span></div>
+          <button id="reset-lab" class="reset-button" type="button" title="Reset all decisions" aria-label="Reset all decisions">↻</button>
         </div>
       </div>
+
       <div class="prompt-strip"><span class="prompt-label">USER REQUEST</span><span id="scenario-prompt"></span><span class="prompt-state">SAME INPUT <b>→</b></span></div>
+
+      <section class="decision-panel" aria-labelledby="decision-question">
+        <div class="decision-meta"><span>BEFORE THE AGENT ACTS</span><span id="round-label">ROUND 01 / 03</span></div>
+        <h3 id="decision-question">What control should your agent enforce?</h3>
+        <div id="decision-options" class="decision-options"></div>
+        <p id="decision-feedback" class="decision-feedback" role="status">Choose the policy you would ship. The outcome below will respond to your call.</p>
+      </section>
+
       <div class="arena-grid">
         <section class="agent-panel naive-panel" aria-labelledby="naive-heading">
           <div class="panel-head">
-            <div class="agent-name"><span class="agent-symbol naive-symbol">N</span><div><h3 id="naive-heading">Naive agent</h3><span>UNRESTRICTED TOOLING</span></div></div>
-            <span id="naive-status" class="status-pill idle">STANDBY</span>
+            <div class="agent-name"><span class="agent-symbol naive-symbol">0</span><div><h3 id="naive-heading">No control</h3><span>UNPROTECTED BASELINE</span></div></div>
+            <span id="naive-status" class="status-pill idle">WAITING</span>
           </div>
-          <div id="naive-events" class="event-list" aria-live="polite"><div class="empty-state">Waiting for the scenario</div></div>
+          <div id="naive-events" class="event-list" aria-live="polite"><div class="empty-state">Waiting for your decision</div></div>
         </section>
+
         <section class="agent-panel secure-panel" aria-labelledby="secure-heading">
           <div class="panel-head">
-            <div class="agent-name"><span class="agent-symbol secure-symbol">S</span><div><h3 id="secure-heading">Secure-by-design</h3><span>POLICY-BOUNDED TOOLS</span></div></div>
-            <span id="secure-status" class="status-pill idle">STANDBY</span>
+            <div class="agent-name"><span class="agent-symbol secure-symbol">1</span><div><h3 id="secure-heading">Your build</h3><span id="build-policy">AWAITING YOUR POLICY</span></div></div>
+            <span id="secure-status" class="status-pill idle">WAITING</span>
           </div>
-          <div id="secure-events" class="event-list" aria-live="polite"><div class="empty-state">Waiting for the scenario</div></div>
+          <div id="secure-events" class="event-list" aria-live="polite"><div class="empty-state">Waiting for your decision</div></div>
         </section>
       </div>
+
       <section class="control-bar" aria-live="polite">
         <div class="control-marker">CONTROL<br>IN FOCUS</div>
-        <div class="control-copy"><h3 id="control-title">Secure controls make the difference visible.</h3><p id="control-description">Choose a scenario to see the same request handled two ways.</p></div>
+        <div class="control-copy"><h3 id="control-title">Your decision changes the outcome.</h3><p id="control-description">Choose A or B above. The baseline and your implementation will run the same scenario.</p></div>
         <div class="control-stamp"><span>BUILD</span><strong>SECURE</strong><span>BY DESIGN</span></div>
       </section>
-      <footer class="workspace-foot"><span id="scenario-progress">01 <b>/</b> 03 SCENARIOS</span><span>SECURITY IS A DESIGN DECISION, NOT A PATCH</span><span>AGENT ARENA <b>·</b> OFFLINE-READY</span></footer>
+
+      <footer class="workspace-foot"><span id="scenario-progress">01 <b>/</b> 03 ROUNDS</span><span>SECURITY IS A DESIGN DECISION, NOT A PATCH</span><span>AGENT ARENA <b>·</b> OFFLINE-READY</span></footer>
     </section>
   </main>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>

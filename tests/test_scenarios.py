@@ -34,3 +34,11 @@ def test_api_serves_arena_and_scenarios() -> None:
 def test_run_api_rejects_unknown_scenario() -> None:
     response = client.post("/api/run/not-a-scenario")
     assert response.status_code == 404
+
+
+def test_each_round_has_one_secure_and_one_risky_choice() -> None:
+    for scenario in SCENARIOS:
+        choices = scenario["choices"]
+        assert len(choices) == 2
+        assert len({choice["id"] for choice in choices}) == 2
+        assert sum(choice["secure"] for choice in choices) == 1
