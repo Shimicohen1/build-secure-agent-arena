@@ -40,10 +40,15 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
+      - name: Assemble Pages bundle
+        run: |
+          mkdir -p site/assets
+          cp arena/static/index.html site/index.html
+          cp arena/static/app.js arena/static/scenarios.json arena/static/styles.css site/assets/
       - name: Upload static demo
         uses: actions/upload-pages-artifact@v3
         with:
-          path: arena/static
+          path: site
       - name: Deploy static demo
         id: deployment
         uses: actions/deploy-pages@v4
